@@ -4,7 +4,7 @@ use nalgebra::SVector;
 
 use crate::partition::PartitionID;
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub(crate) struct PartitionCoord<const N: usize>(pub(crate) [PartitionID; N]);
 
 impl<const N: usize> PartitionCoord<N> {
@@ -79,7 +79,7 @@ impl<const N: usize> PartitionCoord<N> {
         coords
     }
 
-    pub(crate) fn pos(&self) -> SVector<f64, N> {
+    pub(crate) fn norm_pos(&self) -> SVector<f64, N> {
         SVector::<f64, N>::from_iterator(self.0.map(|p| p.pos()))
     }
 }

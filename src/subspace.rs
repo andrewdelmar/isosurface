@@ -1,13 +1,15 @@
+use std::hash::Hash;
+
 use nalgebra::{SVector, Vector1, Vector2, Vector3};
 
 use crate::partition::PartitionCoord;
 
 // A Subspace is an N-dimensional linear subspace of R3.
 // Subspaces are used to make operations on collections of volume, face and edge cells more general.
-pub(crate) trait Subspace<const N: usize>: Ord
+pub(crate) trait Subspace<const N: usize>
 where
     PartitionCoord<{ 3 - N }>:,
-    Self: Clone + Sized,
+    Self: Clone + Sized + Hash + Ord,
 {
     fn project_coord(&self, coord: &PartitionCoord<3>) -> PartitionCoord<N>;
     fn project_vec(&self, vec: &Vector3<f64>) -> SVector<f64, N>;
@@ -18,7 +20,7 @@ where
     fn volume_cell_intersections(coord: &PartitionCoord<3>) -> Vec<Self>;
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Hash)]
 pub(crate) struct R3Space();
 
 impl Subspace<3> for R3Space {
@@ -43,7 +45,7 @@ impl Subspace<3> for R3Space {
     }
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Hash)]
 pub(crate) enum R2Space {
     YZ(PartitionCoord<1>),
     XZ(PartitionCoord<1>),
@@ -80,9 +82,9 @@ impl Subspace<2> for R2Space {
     fn unproject_vec(&self, vec: &Vector2<f64>) -> Vector3<f64> {
         let (u, v) = (vec.x, vec.y);
         match self {
-            R2Space::YZ(x) => Vector3::new(x.pos().x, u, v),
-            R2Space::XZ(y) => Vector3::new(u, y.pos().x, v),
-            R2Space::XY(z) => Vector3::new(u, v, z.pos().x),
+            R2Space::YZ(x) => Vector3::new(x.norm_pos().x, u, v),
+            R2Space::XZ(y) => Vector3::new(u, y.norm_pos().x, v),
+            R2Space::XY(z) => Vector3::new(u, v, z.norm_pos().x),
         }
     }
 
@@ -100,7 +102,7 @@ impl Subspace<2> for R2Space {
     }
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Hash)]
 pub(crate) enum R1Space {
     X(PartitionCoord<2>),
     Y(PartitionCoord<2>),

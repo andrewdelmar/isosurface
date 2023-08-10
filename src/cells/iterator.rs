@@ -1,4 +1,4 @@
-use std::collections::{btree_map, BTreeMap};
+use std::{collections::{btree_map, BTreeMap}, cmp::Ordering};
 
 use crate::{
     partition::{PartitionCoord, PartitionTreeIter},
@@ -19,6 +19,62 @@ where
     pub(crate) subspace: S,
     pub(crate) coord: PartitionCoord<N>,
     pub(crate) cell_data: &'a Cell<N>,
+}
+
+impl<'a, const N: usize, S> PartialEq for CellView<'a, N, S> 
+where
+    [(); 3 - N]:,
+    S: Subspace<N>,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.subspace == other.subspace && self.coord == other.coord
+    }
+}
+
+impl<'a, const N: usize, S> Eq for CellView<'a, N, S>
+where
+    [(); 3 - N]:,
+    S: Subspace<N>,
+{} 
+
+impl<'a, const N: usize, S> PartialOrd for CellView<'a, N, S> 
+where
+    [(); 3 - N]:,
+    S: Subspace<N>,
+{
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl<'a, const N: usize, S> Ord for CellView<'a, N, S> 
+    where
+    [(); 3 - N]:,
+    S: Subspace<N>,
+{
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        match self.subspace.cmp(&other.subspace){
+            Ordering::Equal => {},
+            ord => return ord,
+        }
+        match self.coord.cmp(&other.coord){
+            Ordering::Equal => {},
+            ord => return ord,
+        }
+
+        Ordering::Equal
+    }
+}
+
+impl<'a, const N: usize, S> std::hash::Hash for CellView<'a, N, S> 
+    where
+    [(); 3 - N]:,
+    S: Subspace<N>,
+{
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.subspace.hash(state);
+        self.coord.hash(state);
+    }
 }
 
 pub(crate) struct CellIter<'a, const N: usize, S>

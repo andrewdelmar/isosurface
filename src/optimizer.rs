@@ -1,6 +1,10 @@
 use nalgebra::{SMatrix, SVector};
 
-use crate::{cache::EvaluationCache, partition::PartitionCoord, subspace::Subspace};
+use crate::{
+    cache::EvaluationCache,
+    partition::PartitionCoord,
+    subspace::{R3Space, Subspace},
+};
 
 #[derive(Default)]
 pub(crate) struct DualQuadric<const N: usize>(SMatrix<f64, { N + 1 }, { N + 1 }>)
@@ -19,11 +23,12 @@ macro_rules! impl_quadric {
                 cache: &mut EvaluationCache,
             ) {
                 let coord3 = subspace.unproject_coord(coord);
-                let pos = subspace.project_vec(&cache.pos(&coord3));
+                let real_pos =
+                    subspace.project_vec(&cache.volume.real_pos(&coord3.norm_pos(), &R3Space()));
                 let grad = subspace.project_vec(&cache.eval_grad(&coord3));
                 let val = cache.eval(&coord3);
 
-                let d = val - grad.dot(&pos);
+                let d = val - grad.dot(&real_pos);
                 let plane = grad.push(d);
 
                 self.0 += plane * plane.transpose();
@@ -50,13 +55,9 @@ macro_rules! impl_quadric {
                     o.add(&v, subspace, cache);
                 }
 
-                match o.solve() {
-                    Some(d) => d,
-                    None => {
-                        println!("did not find dual!");
-                        subspace.project_vec(&cache.pos(&subspace.unproject_coord(&coord)))
-                    }
-                }
+                o.solve()
+                    .map(|p| cache.volume.norm_pos(&p, subspace))
+                    .unwrap_or(coord.norm_pos())
             }
         }
     };

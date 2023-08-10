@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 // A PartitionID represents a point in space from 0 to 1. It is effectively a 63 bit fixed point value.
 // It's also used used to identify a node in a binary division of space with that point at its center.
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub(crate) struct PartitionID(u64);
 
 impl PartitionID {

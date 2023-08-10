@@ -1,34 +1,77 @@
 use std::mem::MaybeUninit;
 
+use nalgebra::Vector3;
+
 use crate::{
+    cache::EvaluationCache,
     cells::CellView,
     partition::PartitionCoord,
-    subspace::{R1Space, R2Space, R3Space},
+    subspace::{R1Space, R2Space, R3Space, Subspace},
 };
 
-#[derive(Clone)]
-pub(crate) enum Vertex<'a> {
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub(crate) enum SimplexVert<'a> {
     CellBoundary(PartitionCoord<3>),
     EdgeDual(CellView<'a, 1, R1Space>),
     FaceDual(CellView<'a, 2, R2Space>),
     VolumeDual(CellView<'a, 3, R3Space>),
 }
 
+impl<'a> SimplexVert<'a> {
+    pub(crate) fn eval(&self, cache: &mut EvaluationCache) -> f64 {
+        match self {
+            SimplexVert::CellBoundary(coord) => cache.eval(coord),
+            SimplexVert::EdgeDual(cell) => *cell
+                .cell_data
+                .dual_val
+                .get_or_init(|| cache.eval_vec(&cell.cell_data.dual_pos.borrow(), &cell.subspace)),
+            SimplexVert::FaceDual(cell) => *cell
+                .cell_data
+                .dual_val
+                .get_or_init(|| cache.eval_vec(&cell.cell_data.dual_pos.borrow(), &cell.subspace)),
+            SimplexVert::VolumeDual(cell) => *cell
+                .cell_data
+                .dual_val
+                .get_or_init(|| cache.eval_vec(&cell.cell_data.dual_pos.borrow(), &cell.subspace)),
+        }
+    }
+
+    pub(crate) fn pos(&self, cache: &mut EvaluationCache) -> Vector3<f64> {
+        cache.volume.real_pos(
+            &match self {
+                SimplexVert::CellBoundary(coord) => coord.norm_pos(),
+                SimplexVert::EdgeDual(cell) => cell
+                    .subspace
+                    .unproject_vec(&cell.cell_data.dual_pos.borrow()),
+                SimplexVert::FaceDual(cell) => cell
+                    .subspace
+                    .unproject_vec(&cell.cell_data.dual_pos.borrow()),
+                SimplexVert::VolumeDual(cell) => *cell.cell_data.dual_pos.borrow(),
+            },
+            &R3Space(),
+        )
+    }
+
+    pub(crate) fn inside(&self, cache: &mut EvaluationCache) -> bool {
+        self.eval(cache) < 0.0
+    }
+}
+
 pub(crate) struct Simplex<'a, const N: usize> {
-    pub(crate) verts: [Vertex<'a>; N],
+    pub(crate) verts: [SimplexVert<'a>; N],
 }
 
 impl<'a, const N: usize> Simplex<'a, N>
 where
-    Vertex<'a>: Sized,
+    SimplexVert<'a>: Sized,
 {
-    pub(crate) fn add(&self, vert: Vertex<'a>) -> Simplex<'a, { N + 1 }> {
+    pub(crate) fn add(&self, vert: SimplexVert<'a>) -> Simplex<'a, { N + 1 }> {
         let verts = unsafe {
-            let mut uninit = MaybeUninit::<[Vertex<'a>; N + 1]>::uninit();
+            let mut uninit = MaybeUninit::<[SimplexVert<'a>; N + 1]>::uninit();
 
-            let ptr = uninit.as_mut_ptr() as *mut Vertex<'a>;
-            (ptr as *mut [Vertex<'a>; N]).write(self.verts.clone());
-            (ptr.add(N) as *mut Vertex).write(vert);
+            let ptr = uninit.as_mut_ptr() as *mut SimplexVert<'a>;
+            (ptr as *mut [SimplexVert<'a>; N]).write(self.verts.clone());
+            (ptr.add(N) as *mut SimplexVert).write(vert);
 
             uninit.assume_init()
         };

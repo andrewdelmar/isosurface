@@ -55,12 +55,27 @@ where
     where
         [(); 1 << N]:,
     {
+        self.children_with_coord(coord, coord)
+    }
+
+    fn children_with_coord<'a>(
+        &'a self,
+        coord: &PartitionCoord<N>,
+        original_coord: &PartitionCoord<N>,
+    ) -> PartitionTreeIter<'a, T, N>
+    where
+        [(); 1 << N]:,
+    {
         match (coord.is_root(), self) {
-            (true, node) => node.into_iter(),
+            (true, node) => PartitionTreeIter {
+                stack: vec![(node, *original_coord)],
+            },
             (false, PartitionTree::None | PartitionTree::Leaf(_)) => PartitionTreeIter {
                 stack: Vec::default(),
             },
-            (false, PartitionTree::Node(c)) => c[coord.tree_index()].children(&coord.id_at_child()),
+            (false, PartitionTree::Node(c)) => {
+                c[coord.tree_index()].children_with_coord(&coord.id_at_child(), original_coord)
+            }
         }
     }
 }

@@ -11,14 +11,14 @@ use super::VolumeCellCollection;
 
 pub(crate) struct Cell<const N: usize> {
     pub(crate) dual_pos: RefCell<SVector<f64, N>>,
-    pub(crate) vertex_buffer_ind: OnceCell<usize>,
+    pub(crate) dual_val: OnceCell<f64>,
 }
 
 impl<const N: usize> Default for Cell<N> {
     fn default() -> Self {
         Self {
             dual_pos: RefCell::new(SVector::<f64, N>::from_element(Default::default())),
-            vertex_buffer_ind: Default::default(),
+            dual_val: Default::default(),
         }
     }
 }
