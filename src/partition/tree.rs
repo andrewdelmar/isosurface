@@ -18,6 +18,8 @@ impl<T, const N: usize> PartitionTree<T, N>
 where
     [(); 1 << N]:,
 {
+    // Insert a node at the given coordinate, if a child of that coordinate doesn't already exist.
+    // It will remove the values of parents of this coordinate.
     pub(crate) fn insert_leaf(&mut self, coord: PartitionCoord<N>, val: T) {
         match (coord.is_root(), &self) {
             (false, PartitionTree::None) | (false, PartitionTree::Leaf(_)) => {
@@ -34,6 +36,7 @@ where
         };
     }
 
+    // Remove any nodes without children.
     pub(crate) fn prune(&mut self) {
         if let Self::Node(box children) = self {
             let mut empty = true;
@@ -51,6 +54,7 @@ where
         }
     }
 
+    // Returns an iterator of all children of the given coordinate.
     pub(crate) fn children<'a>(&'a self, coord: &PartitionCoord<N>) -> PartitionTreeIter<'a, T, N>
     where
         [(); 1 << N]:,

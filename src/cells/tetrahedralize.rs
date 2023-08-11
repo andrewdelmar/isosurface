@@ -6,6 +6,8 @@ use crate::{
 
 use super::{EdgeCellCollection, FaceCellCollection, VolumeCellCollection};
 
+// tetrahedralize returns a collection of tetrahedra connecting the bounds and duals of each volume cell,
+// the face cells bordering that volume cell and the edge cells bordering those face cells. 
 pub(crate) fn tetrahedralize<'a>(
     volume_cells: &'a VolumeCellCollection,
     face_cells: &'a FaceCellCollection,

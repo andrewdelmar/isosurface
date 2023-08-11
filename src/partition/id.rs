@@ -10,32 +10,38 @@ impl PartitionID {
     const ROOT_ID: u64 = 1 << 62;
     const TREE_BITS: u64 = !(1 << 63);
 
-    // The partition at the upper bound of this segment. It is always a (potentially indirect) parent of this segment.
+    // The upper bound of a segment represented by this ID.
+    // A segment with that bound at its center is always a parent of this segment. 
     pub(crate) fn high_parent(&self) -> Self {
         let Self(id) = self;
         Self(id + (1 << (id.trailing_zeros())))
     }
 
-    // The partition at the lower bound of this segment. It is always a (potentially indirect) parent of this segment.
+    // The lower bound of a segment represented by this ID.
+    // A segment with that bound at its center is always a parent of this segment. 
     pub(crate) fn low_parent(&self) -> Self {
         let Self(id) = self;
         Self(id - (1 << (id.trailing_zeros())))
     }
 
-    // The direct, upper child of this segment.
+    // The upper half of this segment.
+    // A segment of (0 - 0.5) would have a higher child of (0.25 - 0.5).
+    // It is always a direct child of this segment.
     pub(crate) fn high_child(&self) -> Self {
         let Self(id) = self;
         Self(id + (1 << (id.trailing_zeros() - 1)))
     }
 
-    // The direct, lower child of this segment.
+    // The lower half of this segment.
+    // A segment of (0 - 0.5) would have a lower child of (0 - 0.25).
+    // It is always a direct child of this segment.
     pub(crate) fn low_child(&self) -> Self {
         let Self(id) = self;
         Self(id - (1 << (id.trailing_zeros() - 1)))
     }
 
     // The position of this segment as a float from 0.0 to 1.0
-    pub(crate) fn pos(&self) -> f64 {
+    pub(crate) fn norm_pos(&self) -> f64 {
         let Self(id) = self;
         if *id == 0 {
             return 0.0;
@@ -47,8 +53,8 @@ impl PartitionID {
         num as f64 / den as f64
     }
 
-    // The child index of the root node of a tree that points toward this ID.
-    pub(crate) fn tree_index(&self) -> usize {
+    // The index in an array of children in the root node of a tree that points toward this ID.
+    pub fn tree_index(&self) -> usize {
         let Self(id) = self;
         if id & Self::ROOT_ID == 0 {
             0
@@ -77,7 +83,7 @@ impl Default for PartitionID {
 
 impl Display for PartitionID {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write! {f, "({} - {})", self.low_parent().pos(), self.high_parent().pos()}
+        write! {f, "({} - {})", self.low_parent().norm_pos(), self.high_parent().norm_pos()}
     }
 }
 
@@ -108,7 +114,7 @@ mod tests {
         let mut expected_pos = 0.5;
 
         for _ in 0..60 {
-            assert_eq!(id.pos(), expected_pos);
+            assert_eq!(id.norm_pos(), expected_pos);
 
             id = id.low_child();
             expected_pos /= 2.0;
@@ -138,9 +144,9 @@ mod tests {
         let root = PartitionID::default();
 
         let max = root.high_parent();
-        assert_eq!(max.pos(), 1.0);
+        assert_eq!(max.norm_pos(), 1.0);
 
         let min = root.low_parent();
-        assert_eq!(min.pos(), 0.0);
+        assert_eq!(min.norm_pos(), 0.0);
     }
 }

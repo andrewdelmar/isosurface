@@ -8,7 +8,7 @@ pub(crate) type FaceCellCollection = CellCollection<2, R2Space>;
 pub(crate) type VolumeCellCollection = CellCollection<3, R3Space>;
 
 mod iterator;
-pub(crate) use iterator::CellView;
+pub(crate) use iterator::CellEntry;
 
 mod build;
 pub(crate) use build::build_cell_trees;

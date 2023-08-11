@@ -4,7 +4,6 @@ mod cache;
 mod cells;
 mod isosurface;
 mod mesh;
-mod obj;
 mod optimizer;
 mod partition;
 mod sdf;
@@ -12,6 +11,5 @@ mod simplex;
 mod subspace;
 mod volume;
 
-pub use isosurface::IsosurfaceSolver;
+pub use isosurface::find_isosurface;
 pub use mesh::MeshBuffers;
-pub use obj::export_obj;

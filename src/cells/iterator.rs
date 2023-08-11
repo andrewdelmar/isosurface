@@ -11,7 +11,7 @@ use super::{
 };
 
 #[derive(Clone)]
-pub(crate) struct CellView<'a, const N: usize, S>
+pub(crate) struct CellEntry<'a, const N: usize, S>
 where
     [(); 3 - N]:,
     S: Subspace<N>,
@@ -21,7 +21,7 @@ where
     pub(crate) cell_data: &'a Cell<N>,
 }
 
-impl<'a, const N: usize, S> PartialEq for CellView<'a, N, S> 
+impl<'a, const N: usize, S> PartialEq for CellEntry<'a, N, S> 
 where
     [(); 3 - N]:,
     S: Subspace<N>,
@@ -31,13 +31,13 @@ where
     }
 }
 
-impl<'a, const N: usize, S> Eq for CellView<'a, N, S>
+impl<'a, const N: usize, S> Eq for CellEntry<'a, N, S>
 where
     [(); 3 - N]:,
     S: Subspace<N>,
 {} 
 
-impl<'a, const N: usize, S> PartialOrd for CellView<'a, N, S> 
+impl<'a, const N: usize, S> PartialOrd for CellEntry<'a, N, S> 
 where
     [(); 3 - N]:,
     S: Subspace<N>,
@@ -47,7 +47,7 @@ where
     }
 }
 
-impl<'a, const N: usize, S> Ord for CellView<'a, N, S> 
+impl<'a, const N: usize, S> Ord for CellEntry<'a, N, S> 
     where
     [(); 3 - N]:,
     S: Subspace<N>,
@@ -66,7 +66,7 @@ impl<'a, const N: usize, S> Ord for CellView<'a, N, S>
     }
 }
 
-impl<'a, const N: usize, S> std::hash::Hash for CellView<'a, N, S> 
+impl<'a, const N: usize, S> std::hash::Hash for CellEntry<'a, N, S> 
     where
     [(); 3 - N]:,
     S: Subspace<N>,
@@ -109,12 +109,12 @@ where
     [(); 1 << N]:,
     S: Subspace<N>,
 {
-    type Item = CellView<'a, N, S>;
+    type Item = CellEntry<'a, N, S>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.leaves {
             Some((subspace, ref mut leaf_iter)) => match leaf_iter.next() {
-                Some((coord, cell_data)) => Some(CellView {
+                Some((coord, cell_data)) => Some(CellEntry {
                     subspace: subspace.clone(),
                     coord,
                     cell_data,
@@ -138,7 +138,7 @@ where
     [(); 1 << N]:,
     S: Subspace<N>,
 {
-    type Item = CellView<'a, N, S>;
+    type Item = CellEntry<'a, N, S>;
 
     type IntoIter = CellIter<'a, N, S>;
 
@@ -162,12 +162,12 @@ where
     [(); 1 << N]:,
     S: Subspace<N>,
 {
-    type Item = CellView<'a, N, S>;
+    type Item = CellEntry<'a, N, S>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(tree_iter) = &mut self.tree_iter 
         && let Some((coord, cell)) = tree_iter.next() {
-            Some(CellView {
+            Some(CellEntry {
                 subspace: self.subspace.clone(),
                 coord: coord,
                 cell_data: cell,

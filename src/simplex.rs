@@ -4,7 +4,7 @@ use nalgebra::Vector3;
 
 use crate::{
     cache::EvaluationCache,
-    cells::CellView,
+    cells::CellEntry,
     partition::PartitionCoord,
     subspace::{R1Space, R2Space, R3Space, Subspace},
 };
@@ -12,9 +12,9 @@ use crate::{
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) enum SimplexVert<'a> {
     CellBoundary(PartitionCoord<3>),
-    EdgeDual(CellView<'a, 1, R1Space>),
-    FaceDual(CellView<'a, 2, R2Space>),
-    VolumeDual(CellView<'a, 3, R3Space>),
+    EdgeDual(CellEntry<'a, 1, R1Space>),
+    FaceDual(CellEntry<'a, 2, R2Space>),
+    VolumeDual(CellEntry<'a, 3, R3Space>),
 }
 
 impl<'a> SimplexVert<'a> {

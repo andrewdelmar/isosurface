@@ -8,6 +8,7 @@ use crate::partition::PartitionID;
 pub(crate) struct PartitionCoord<const N: usize>(pub(crate) [PartitionID; N]);
 
 impl<const N: usize> PartitionCoord<N> {
+    // The index in an array of children in the root node of a tree that points toward this ID.
     pub(crate) fn tree_index(&self) -> usize {
         let Self(coords) = self;
         let mut index = 0;
@@ -19,6 +20,7 @@ impl<const N: usize> PartitionCoord<N> {
         index
     }
 
+    // The equivalent ID if we treat a child, indexed by tree_index as root.
     pub(crate) fn id_at_child(&self) -> Self {
         let Self(coords) = self;
         Self(coords.map(|c| c.id_at_child()))
@@ -34,6 +36,7 @@ impl<const N: usize> PartitionCoord<N> {
         false
     }
 
+    // Returns an array of every combination of high and low children of each component.
     pub(crate) fn child_coords(&self) -> [PartitionCoord<N>; 1 << N] {
         let mut coords = [*self; 1 << N];
         for index in 0..1 << N {
@@ -51,16 +54,19 @@ impl<const N: usize> PartitionCoord<N> {
         coords
     }
 
+    // Returns a coordinate with each component's high parents.
     pub(crate) fn high_parents(&self) -> Self {
         let Self(coords) = self;
         Self(coords.map(|c| c.high_parent()))
     }
 
+    // Returns a coordinate with each component's low parents.
     pub(crate) fn low_parents(&self) -> Self {
         let Self(coords) = self;
         Self(coords.map(|c| c.low_parent()))
     }
 
+    // The coordinates at every bounding vertex of a segment with this coord.
     pub(crate) fn vertex_coords(&self) -> [PartitionCoord<N>; 1 << N] {
         let mut coords = [self.clone(); 1 << N];
 
@@ -79,8 +85,9 @@ impl<const N: usize> PartitionCoord<N> {
         coords
     }
 
+    // Returns a coordinate with each component's high parents.
     pub(crate) fn norm_pos(&self) -> SVector<f64, N> {
-        SVector::<f64, N>::from_iterator(self.0.map(|p| p.pos()))
+        SVector::<f64, N>::from_iterator(self.0.map(|p| p.norm_pos()))
     }
 }
 

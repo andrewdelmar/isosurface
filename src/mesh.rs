@@ -1,4 +1,7 @@
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    io::{self, Write},
+};
 
 use nalgebra::Vector3;
 
@@ -7,6 +10,7 @@ use crate::{
     simplex::{Simplex, SimplexVert},
 };
 
+// A MeshBuffers struct contains an index and vertex buffer representing an isosurface.
 pub struct MeshBuffers(pub Vec<Vector3<f64>>, pub Vec<usize>);
 
 impl MeshBuffers {
@@ -30,6 +34,7 @@ impl MeshBuffers {
 
     // TODO using a vec here leads to unnecessary heap allocations.
     // This probably isnt a performance issue but an arrayvec or enum would be cleaner.
+    // Using bumpalo or some arena allocator should also help.
     fn tetra_tris<'a>(cache: &mut EvaluationCache, tetra: &Simplex<'a, 4>) -> Vec<Face<'a>> {
         let [a, b, c, d] = &tetra.verts;
         let [ai, bi, ci, di] = [
@@ -83,6 +88,22 @@ impl MeshBuffers {
 
         Self(verts, inds)
     }
+
+    pub fn export_obj<W: Write>(&self, writer: &mut W) -> Result<(), io::Error> {
+        let Self(verts, inds) = self;
+
+        for vert in verts {
+            let line = format!("v {} {} {}\n", vert.x, vert.y, vert.z);
+            writer.write(line.as_bytes())?;
+        }
+
+        for chunk in inds.chunks_exact(3) {
+            let line = format!("f {} {} {}\n", chunk[0], chunk[1], chunk[2]);
+            writer.write(line.as_bytes())?;
+        }
+
+        Ok(())
+    }
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -94,6 +115,9 @@ struct FaceVert<'a> {
 impl<'a> FaceVert<'a> {
     fn crossing(&self, cache: &mut EvaluationCache) -> Vector3<f64> {
         // TODO This should use a couple of iterations of newtons method or something.
+        // Maybe pass in some error value/max iterations to optimize to.
+        // Placing vertices on the isosurface will always under/overshoot concave/convex curves.
+        // This would ideally consider some estimate of error across neighboring tris.
         let iv = self.i.eval(cache);
         let ov = self.o.eval(cache);
         let t = (-iv / (ov - iv)).clamp(0.0, 1.0);
@@ -103,9 +127,10 @@ impl<'a> FaceVert<'a> {
 
 impl<'a> From<(&SimplexVert<'a>, &SimplexVert<'a>)> for FaceVert<'a> {
     fn from(value: (&SimplexVert<'a>, &SimplexVert<'a>)) -> Self {
+        let (i, o) = value;
         FaceVert {
-            i: value.0.clone(),
-            o: value.1.clone(),
+            i: i.clone(),
+            o: o.clone(),
         }
     }
 }

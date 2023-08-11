@@ -9,6 +9,8 @@ use crate::{
     volume::SDFVolume,
 };
 
+// An EvaluationCache is a cache of evaluations of an SDFExpression and its gradient.
+// This simplifies looking up values when constructing cell trees and during marching tetrahedra.
 pub(crate) struct EvaluationCache<'a> {
     f: &'a SDFExpression,
     df_dx: SDFExpression,

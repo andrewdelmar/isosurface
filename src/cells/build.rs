@@ -12,11 +12,10 @@ use super::{
     EdgeCellCollection, FaceCellCollection, VolumeCellCollection,
 };
 
-// build_cell_trees returns an octree, set of quadtrees and a set of binary trees.
-// These sets trees contain volume, face and edge cells divided up to max depth.
-// Trees are divided wherever a sign change occurs in the cache.expression.
-// Trees of cells is divided up to min_depth times before sign changes are tested.   
-// Any branches of the trees that do not contain a sign change after are pruned.
+// build_cell_trees returns an octree, a set of quadtrees and a set of binary trees.
+// These sets of trees contain volume, face and edge cells respectively.
+// Trees are divided wherever a sign change occurs in the function up to max_depth.
+// Trees of cells are divided up to min_depth times before sign changes are tested.   
 pub(crate) fn build_cell_trees(
     cache: &mut EvaluationCache,
     min_depth: usize,

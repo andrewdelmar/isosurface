@@ -11,12 +11,19 @@ where
     PartitionCoord<{ 3 - N }>:,
     Self: Clone + Sized + Hash + Ord,
 {
+    // Project a 3D PartitionCoord into this subspace.
     fn project_coord(&self, coord: &PartitionCoord<3>) -> PartitionCoord<N>;
+    // Project a vector in R3 into this subspace.
     fn project_vec(&self, vec: &Vector3<f64>) -> SVector<f64, N>;
 
+    // Returns a 3D  PartitionCoord corresponding to the the position of coord in this subspace. 
     fn unproject_coord(&self, coord: &PartitionCoord<N>) -> PartitionCoord<3>;
+    // Returns a vector in R3 corresponding to the position of vec in this subspace.
     fn unproject_vec(&self, vec: &SVector<f64, N>) -> Vector3<f64>;
 
+    // Returns subspaces of this type along the boundary of a volume the given PartitionCoord.
+    // More specifically this will return subspaces along the faces or edges of a volume for
+    // R2Space and R1Space.
     fn volume_cell_intersections(coord: &PartitionCoord<3>) -> Vec<Self>;
 }
 
@@ -139,9 +146,9 @@ impl Subspace<1> for R1Space {
     fn unproject_vec(&self, vec: &Vector1<f64>) -> Vector3<f64> {
         let c = vec.x;
         match self {
-            R1Space::X(PartitionCoord([y, z])) => Vector3::new(c, y.pos(), z.pos()),
-            R1Space::Y(PartitionCoord([x, z])) => Vector3::new(x.pos(), c, z.pos()),
-            R1Space::Z(PartitionCoord([x, y])) => Vector3::new(x.pos(), y.pos(), c),
+            R1Space::X(PartitionCoord([y, z])) => Vector3::new(c, y.norm_pos(), z.norm_pos()),
+            R1Space::Y(PartitionCoord([x, z])) => Vector3::new(x.norm_pos(), c, z.norm_pos()),
+            R1Space::Z(PartitionCoord([x, y])) => Vector3::new(x.norm_pos(), y.norm_pos(), c),
         }
     }
 
