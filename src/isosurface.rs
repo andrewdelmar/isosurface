@@ -1,7 +1,7 @@
 use crate::{
     cache::EvaluationCache,
     cells::{build_cell_trees, tetrahedralize},
-    optimizer::DualQuadric,
+    optimizer::{find_edge_dual, find_face_dual, find_volume_dual},
     sdf::SDFExpression,
     volume::SDFVolume,
     MeshBuffers,
@@ -23,23 +23,26 @@ pub fn find_isosurface(
 
     for cell in &volume_cells {
         *cell.cell_data.dual_pos.borrow_mut() =
-            DualQuadric::<3>::find_dual(&cell.coord, &cell.subspace, &mut cache);
+            find_volume_dual(&cell.coord, &cell.subspace, &mut cache);
     }
     for cell in &face_cells {
         *cell.cell_data.dual_pos.borrow_mut() =
-            DualQuadric::<2>::find_dual(&cell.coord, &cell.subspace, &mut cache);
+            find_face_dual(&cell.coord, &cell.subspace, &mut cache);
     }
     for cell in &edge_cells {
         *cell.cell_data.dual_pos.borrow_mut() =
-            DualQuadric::<1>::find_dual(&cell.coord, &cell.subspace, &mut cache);
+            find_edge_dual(&cell.coord, &cell.subspace, &mut cache);
     }
 
     let tetras = tetrahedralize(&volume_cells, &face_cells, &edge_cells);
+
     MeshBuffers::new(&mut cache, tetras)
 }
 
 #[cfg(test)]
 mod tests {
+    use std::fs::File;
+
     use nalgebra::Vector3;
 
     use crate::{find_isosurface, sdf::SDFExpression};
@@ -58,7 +61,9 @@ mod tests {
             size: Vector3::new(10.0, 10.0, 10.0),
         };
 
-        let mesh = find_isosurface(&sphere, &volume, 2, 4);
+        let mesh = find_isosurface(&sphere, &volume, 2, 3);
+
+        mesh.export_obj(&mut File::create("thingy.obj").unwrap()).expect("aaa");
 
         for vert in mesh.0 {
             let len = vert.norm();

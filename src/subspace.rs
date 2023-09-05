@@ -15,8 +15,12 @@ where
     fn project_coord(&self, coord: &PartitionCoord<3>) -> PartitionCoord<N>;
     // Project a vector in R3 into this subspace.
     fn project_vec(&self, vec: &Vector3<f64>) -> SVector<f64, N>;
+    // Project a vector into the orthogonal compliment of this subspace.
+    fn ortho_components_vec(&self, vec: &Vector3<f64>) -> SVector<f64, { 3 - N }>;
 
-    // Returns a 3D  PartitionCoord corresponding to the the position of coord in this subspace. 
+    fn norm_pos(&self) -> SVector<f64, { 3 - N }>;
+
+    // Returns a 3D  PartitionCoord corresponding to the the position of coord in this subspace.
     fn unproject_coord(&self, coord: &PartitionCoord<N>) -> PartitionCoord<3>;
     // Returns a vector in R3 corresponding to the position of vec in this subspace.
     fn unproject_vec(&self, vec: &SVector<f64, N>) -> Vector3<f64>;
@@ -37,6 +41,15 @@ impl Subspace<3> for R3Space {
 
     fn project_vec(&self, vec: &Vector3<f64>) -> Vector3<f64> {
         vec.clone()
+    }
+
+    fn ortho_components_vec(&self, vec: &Vector3<f64>) -> SVector<f64, { 3 - 3 }> {
+        SVector::default()
+    }
+
+    fn norm_pos(&self) -> SVector<f64, { 3 - 3 }> {
+        SVector::default()
+
     }
 
     fn unproject_coord(&self, coord: &PartitionCoord<3>) -> PartitionCoord<3> {
@@ -74,6 +87,20 @@ impl Subspace<2> for R2Space {
             R2Space::YZ(_) => vec.yz(),
             R2Space::XZ(_) => vec.xz(),
             R2Space::XY(_) => vec.xy(),
+        }
+    }
+
+    fn ortho_components_vec(&self, vec: &Vector3<f64>) -> SVector<f64, { 3 - 2 }> {
+        match self {
+            R2Space::YZ(_) => Vector1::new(vec.x),
+            R2Space::XZ(_) => Vector1::new(vec.y),
+            R2Space::XY(_) => Vector1::new(vec.z),
+        }
+    }
+
+    fn norm_pos(&self) -> SVector<f64, { 3 - 2 }> {
+        match self {
+            R2Space::YZ(u) | R2Space::XZ(u) | R2Space::XY(u) => u.norm_pos(),
         }
     }
 
@@ -131,6 +158,20 @@ impl Subspace<1> for R1Space {
             R1Space::X(_) => Vector1::new(vec.x),
             R1Space::Y(_) => Vector1::new(vec.y),
             R1Space::Z(_) => Vector1::new(vec.z),
+        }
+    }
+
+    fn ortho_components_vec(&self, vec: &Vector3<f64>) -> SVector<f64, { 3 - 1 }> {
+        match self {
+            R1Space::X(_) => Vector2::new(vec.y, vec.z),
+            R1Space::Y(_) => Vector2::new(vec.x, vec.z),
+            R1Space::Z(_) => Vector2::new(vec.x, vec.y),
+        }
+    }
+
+    fn norm_pos(&self) -> SVector<f64, { 3 - 1 }> {
+        match self {
+            R1Space::X(u) | R1Space::Y(u) | R1Space::Z(u) => u.norm_pos(),
         }
     }
 

@@ -1,4 +1,8 @@
-use nalgebra::{SMatrix, SVector};
+use std::ops;
+
+use nalgebra::{
+    allocator::Allocator, Const, DefaultAllocator, DimAdd, DimSum, SMatrix, SVector, U1,
+};
 
 use crate::{
     cache::EvaluationCache,
@@ -6,63 +10,53 @@ use crate::{
     subspace::{R3Space, Subspace},
 };
 
-#[derive(Default)]
-pub(crate) struct DualQuadric<const N: usize>(SMatrix<f64, { N + 1 }, { N + 1 }>)
-where
-    [[f64; N + 1]; N + 1]: Default;
+// Because of the ridiculously painful bounds required for pseudo_inverse and other matrix operations
+// it's much shorter to just implement this for N = 1, 2, and 3 with a macro than use generics.
+macro_rules! impl_optimizer {
+    ($Dim: literal, $Func: ident ) => {
+        pub(crate) fn $Func<S: Subspace<$Dim>>(
+            coord: &PartitionCoord<$Dim>,
+            subspace: &S,
+            cache: &mut EvaluationCache,
+        ) -> SVector<f64, $Dim> {
+            let mut quadric = SMatrix::<f64, { $Dim + 1 }, { $Dim + 1 }>::default();
+            for vert_coord in coord.vertex_coords() {
+                let coord3 = subspace.unproject_coord(&vert_coord);
 
-// Because of the painful bounds required for pseudo_inverse
-// it's much shorter to just implement this for N = 1, 2, and 3.
-macro_rules! impl_quadric {
-    ($D: literal ) => {
-        impl DualQuadric<$D> {
-            pub(crate) fn add<S: Subspace<$D>>(
-                &mut self,
-                coord: &PartitionCoord<$D>,
-                subspace: &S,
-                cache: &mut EvaluationCache,
-            ) {
-                let coord3 = subspace.unproject_coord(coord);
-                let real_pos =
-                    subspace.project_vec(&cache.volume.real_pos(&coord3.norm_pos(), &R3Space()));
-                let grad = subspace.project_vec(&cache.eval_grad(&coord3));
+                let real_pos3 = cache.volume.real_pos(&coord3.norm_pos(), &R3Space());
+                let real_pos_o = subspace.ortho_components_vec(&real_pos3);
+
+                let grad3 = cache.eval_grad(&coord3).normalize();
+                let grad_s = subspace.project_vec(&grad3);
+                let grad_o = subspace.ortho_components_vec(&grad3);
+
                 let val = cache.eval(&coord3);
 
-                let d = val - grad.dot(&real_pos);
-                let plane = grad.push(d);
+                let d = val - grad3.dot(&real_pos3);
+                let d_s = d + grad_o.dot(&real_pos_o);
 
-                self.0 += plane * plane.transpose();
+                let plane = grad_s.push(d_s);
+
+                quadric += plane * plane.transpose();
             }
 
-            pub(crate) fn solve(&self) -> Option<SVector<f64, $D>> {
-                let a = self.0.fixed_view::<$D, $D>(0, 0);
-                let b = self.0.fixed_view::<$D, 1>(0, $D);
-                if let Ok(i) = a.pseudo_inverse(f64::EPSILON) {
-                    Some(i * (-b))
-                } else {
-                    None
-                }
-            }
+            let a = quadric.fixed_view::<$Dim, $Dim>(0, 0);
+            let b = quadric.fixed_view::<$Dim, 1>(0, $Dim);
+            let i = a.pseudo_inverse(f64::EPSILON).unwrap();
+            let dual_pos = i * (-b);
+            let norm_pos = cache.volume.norm_pos(&dual_pos, subspace);
 
-            pub(crate) fn find_dual<S: Subspace<$D>>(
-                coord: &PartitionCoord<$D>,
-                subspace: &S,
-                cache: &mut EvaluationCache,
-            ) -> SVector<f64, $D> {
-                let mut o = Self::default();
-
-                for v in coord.vertex_coords() {
-                    o.add(&v, subspace, cache);
-                }
-
-                o.solve()
-                    .map(|p| cache.volume.norm_pos(&p, subspace))
-                    .unwrap_or(coord.norm_pos())
+            if coord.inside(&norm_pos) {
+                norm_pos
+            } else {
+                //TODO This should project the plance equations onto the cell 
+                // to guarantee a position in the volume
+                coord.norm_pos()
             }
         }
     };
 }
 
-impl_quadric!(1);
-impl_quadric!(2);
-impl_quadric!(3);
+impl_optimizer!(1, find_edge_dual);
+impl_optimizer!(2, find_face_dual);
+impl_optimizer!(3, find_volume_dual);

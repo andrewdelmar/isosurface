@@ -60,7 +60,7 @@ impl<const N: usize> PartitionCoord<N> {
         Self(coords.map(|c| c.high_parent()))
     }
 
-    // Returns a coordinate with each component's low parents.
+    // A coordinate with each component's low parents.
     pub(crate) fn low_parents(&self) -> Self {
         let Self(coords) = self;
         Self(coords.map(|c| c.low_parent()))
@@ -88,6 +88,17 @@ impl<const N: usize> PartitionCoord<N> {
     // Returns a coordinate with each component's high parents.
     pub(crate) fn norm_pos(&self) -> SVector<f64, N> {
         SVector::<f64, N>::from_iterator(self.0.map(|p| p.norm_pos()))
+    }
+
+    pub(crate) fn inside(&self, pos: &SVector<f64, N>) -> bool {
+        for dim in 0..N {
+            if pos[dim] < self.0[dim].low_parent().norm_pos()
+                || pos[dim] > self.0[dim].high_parent().norm_pos()
+            {
+                return false;
+            }
+        }
+        true
     }
 }
 

@@ -98,7 +98,7 @@ impl MeshBuffers {
         }
 
         for chunk in inds.chunks_exact(3) {
-            let line = format!("f {} {} {}\n", chunk[0], chunk[1], chunk[2]);
+            let line = format!("f {} {} {}\n", chunk[0] + 1, chunk[1] + 1, chunk[2] + 1);
             writer.write(line.as_bytes())?;
         }
 
