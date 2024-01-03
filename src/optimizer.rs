@@ -1,8 +1,4 @@
-use std::ops;
-
-use nalgebra::{
-    allocator::Allocator, Const, DefaultAllocator, DimAdd, DimSum, SMatrix, SVector, U1,
-};
+use nalgebra::{SMatrix, SVector};
 
 use crate::{
     cache::EvaluationCache,
@@ -49,7 +45,7 @@ macro_rules! impl_optimizer {
             if coord.inside(&norm_pos) {
                 norm_pos
             } else {
-                //TODO This should project the plance equations onto the cell 
+                //TODO This should project the plance equations onto the cell
                 // to guarantee a position in the volume
                 coord.norm_pos()
             }

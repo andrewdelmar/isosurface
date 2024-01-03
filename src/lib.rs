@@ -2,14 +2,15 @@
 
 mod cache;
 mod cells;
+mod data;
 mod isosurface;
 mod mesh;
 mod optimizer;
 mod partition;
-mod sdf;
 mod simplex;
 mod subspace;
 mod volume;
 
+pub use data::{sdf::SDFExpression, Dimension, VolumetricFunc};
 pub use isosurface::find_isosurface;
 pub use mesh::MeshBuffers;

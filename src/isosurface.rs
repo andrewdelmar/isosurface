@@ -2,22 +2,24 @@ use crate::{
     cache::EvaluationCache,
     cells::{build_cell_trees, tetrahedralize},
     optimizer::{find_edge_dual, find_face_dual, find_volume_dual},
-    sdf::SDFExpression,
     volume::SDFVolume,
-    MeshBuffers,
+    MeshBuffers, VolumetricFunc,
 };
 
 // find_isosurface returns a mesh approximating the isosurface at the 0 value of expr.
 // The implementation is based on the algorithm described in:
 // Isosurfaces Over Simplicial Partitions of Multiresolution Grids by Josiah Manson and Scott Schaefer.
 // min and max_depth control the minimum and maximum subdivision of space in each dimension.
-pub fn find_isosurface(
-    expr: &SDFExpression,
+pub fn find_isosurface<F>(
+    func: &F,
     volume: &SDFVolume,
     min_depth: usize,
     max_depth: usize,
-) -> MeshBuffers {
-    let mut cache = EvaluationCache::new(expr, volume);
+) -> MeshBuffers
+where
+    F: VolumetricFunc,
+{
+    let mut cache = EvaluationCache::new(func, volume);
 
     let (volume_cells, face_cells, edge_cells) = build_cell_trees(&mut cache, min_depth, max_depth);
 
@@ -41,19 +43,17 @@ pub fn find_isosurface(
 
 #[cfg(test)]
 mod tests {
-    use std::fs::File;
-
     use nalgebra::Vector3;
 
-    use crate::{find_isosurface, sdf::SDFExpression};
+    use crate::{find_isosurface, SDFExpression};
 
     use super::SDFVolume;
 
     #[test]
     fn sphere() {
-        let sphere = (SDFExpression::X * SDFExpression::X
-            + SDFExpression::Y * SDFExpression::Y
-            + SDFExpression::Z * SDFExpression::Z)
+        let sphere = (SDFExpression::x() * SDFExpression::x()
+            + SDFExpression::y() * SDFExpression::y()
+            + SDFExpression::z() * SDFExpression::z())
             + (-9.0).into();
 
         let volume = SDFVolume {
@@ -62,8 +62,6 @@ mod tests {
         };
 
         let mesh = find_isosurface(&sphere, &volume, 2, 3);
-
-        mesh.export_obj(&mut File::create("thingy.obj").unwrap()).expect("aaa");
 
         for vert in mesh.0 {
             let len = vert.norm();

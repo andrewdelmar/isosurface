@@ -14,8 +14,8 @@ use super::{
 
 // build_cell_trees returns an octree, a set of quadtrees and a set of binary trees.
 // These sets of trees contain volume, face and edge cells respectively.
-// Trees are divided wherever a sign change occurs in the function up to max_depth.
-// Trees of cells are divided up to min_depth times before sign changes are tested.   
+// Trees are divided wherever a sign change occurs in the input function up to max_depth.
+// Trees of cells are divided min_depth times before sign changes are tested.   
 pub(crate) fn build_cell_trees(
     cache: &mut EvaluationCache,
     min_depth: usize,

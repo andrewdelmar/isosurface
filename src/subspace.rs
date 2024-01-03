@@ -43,7 +43,7 @@ impl Subspace<3> for R3Space {
         vec.clone()
     }
 
-    fn ortho_components_vec(&self, vec: &Vector3<f64>) -> SVector<f64, { 3 - 3 }> {
+    fn ortho_components_vec(&self, _vec: &Vector3<f64>) -> SVector<f64, { 3 - 3 }> {
         SVector::default()
     }
 
