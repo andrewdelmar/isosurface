@@ -11,5 +11,5 @@ mod simplex;
 mod subspace;
 
 pub use data::{sdf::SDFExpression, Dimension, SDFVolume, VolumetricFunc};
-pub use isosurface::find_isosurface;
+pub use isosurface::{find_isosurface, SolverSettings};
 pub use mesh::MeshBuffers;

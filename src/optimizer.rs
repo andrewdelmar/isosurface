@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use nalgebra::{SMatrix, SVector};
 
 use crate::{cache::EvaluationCache, partition::PartitionCoord, subspace::Subspace};
@@ -10,9 +12,10 @@ macro_rules! impl_optimizer {
             coord: &PartitionCoord<$Dim>,
             subspace: &S,
             cache: &mut EvaluationCache,
+            pow: usize,
         ) -> SVector<f64, $Dim> {
             let mut quadric = SMatrix::<f64, { $Dim + 1 }, { $Dim + 1 }>::default();
-            for vert_coord in coord.vertex_coords() {
+            for vert_coord in subdivide_coord(coord, pow) {
                 let real_pos = cache.volume.real_pos(&vert_coord.norm_pos(), subspace);
 
                 let coord3 = subspace.unproject_coord(&vert_coord);
@@ -40,6 +43,23 @@ macro_rules! impl_optimizer {
             }
         }
     };
+}
+
+fn subdivide_coord<const N: usize>(coord: &PartitionCoord<N>, pow: usize) -> Vec<PartitionCoord<N>>
+where
+    [(); 1 << N]:,
+{
+    let mut coords = BTreeSet::new();
+    coords.insert(coord.clone());
+
+    for _ in 0..pow {
+        coords = coords
+            .iter()
+            .flat_map(PartitionCoord::<N>::child_coords)
+            .collect();
+    }
+
+    coords.into_iter().collect()
 }
 
 impl_optimizer!(1, find_edge_dual);

@@ -3,7 +3,7 @@ use std::{
     io::{self, Write},
 };
 
-use nalgebra::Vector3;
+use nalgebra::{ComplexField, Vector3};
 
 use crate::{
     cache::EvaluationCache,
@@ -14,9 +14,14 @@ use crate::{
 pub struct MeshBuffers(pub Vec<Vector3<f64>>, pub Vec<usize>);
 
 impl MeshBuffers {
-    pub(crate) fn new<'a>(cache: &mut EvaluationCache, tetras: Vec<Simplex<'a, 4>>) -> Self {
+    pub(crate) fn new<'a>(
+        cache: &mut EvaluationCache,
+        tetras: Vec<Simplex<'a, 4>>,
+        max_fitting_steps: usize,
+        fitting_error: f64,
+    ) -> Self {
         let tetras = Self::marching_tetrahedra(cache, tetras);
-        Self::collect_buffers(&tetras, cache)
+        Self::collect_buffers(&tetras, cache, max_fitting_steps, fitting_error)
     }
 
     fn marching_tetrahedra<'a>(
@@ -70,7 +75,12 @@ impl MeshBuffers {
         }
     }
 
-    fn collect_buffers<'a>(faces: &Vec<Face<'a>>, cache: &mut EvaluationCache) -> Self {
+    fn collect_buffers<'a>(
+        faces: &Vec<Face<'a>>,
+        cache: &mut EvaluationCache,
+        max_fitting_steps: usize,
+        fitting_error: f64,
+    ) -> Self {
         let mut verts = Vec::<Vector3<f64>>::new();
         let mut inds = Vec::<usize>::new();
         let mut ind_cache = HashMap::<FaceVert<'a>, usize>::new();
@@ -78,7 +88,7 @@ impl MeshBuffers {
         for face in faces {
             for vert in &face.0 {
                 let ind = ind_cache.entry(vert.clone()).or_insert_with(|| {
-                    verts.push(vert.crossing(cache));
+                    verts.push(vert.crossing(cache, max_fitting_steps, fitting_error));
                     verts.len() - 1
                 });
 
@@ -113,20 +123,24 @@ struct FaceVert<'a> {
 }
 
 impl<'a> FaceVert<'a> {
-    fn crossing(&self, cache: &mut EvaluationCache) -> Vector3<f64> {
+    fn crossing(
+        &self,
+        cache: &mut EvaluationCache,
+        max_fitting_steps: usize,
+        fitting_error: f64,
+    ) -> Vector3<f64> {
         let mut iv = self.i.eval(cache);
         let mut ov = self.o.eval(cache);
         let mut ip = self.i.pos(cache);
         let mut op = self.o.pos(cache);
 
         let mut cp = ip;
-        //TODO this should be a setting.
-        for _ in 0..30 {
+        for _ in 0..max_fitting_steps {
             let t = (-iv / (ov - iv)).clamp(0.0, 1.0);
             cp = ip * (1.0 - t) + op * t;
             let cv = cache.eval_real(&cp);
 
-            if cv == 0.0 {
+            if cv.abs() <= fitting_error {
                 break;
             } else if cv < 0.0 {
                 ip = cp;

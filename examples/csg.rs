@@ -2,7 +2,7 @@
 
 use std::fs::File;
 
-use isosurface_simplex::{find_isosurface, SDFExpression, SDFVolume};
+use isosurface_simplex::{find_isosurface, SDFExpression, SDFVolume, SolverSettings};
 use nalgebra::Vector3;
 
 fn sphere(pos: Vector3<f64>, size: f64) -> SDFExpression {
@@ -23,8 +23,7 @@ fn main() {
             base: Vector3::new(-5.0, -5.0, -5.0),
             size: Vector3::new(10.0, 10.0, 10.0),
         },
-        4,
-        5,
+        &SolverSettings::default(),
     );
 
     let mut file = File::create("csg.obj").expect("Failed to open output file");
