@@ -5,8 +5,7 @@ use nalgebra::{SVector, Vector3};
 use crate::{
     partition::PartitionCoord,
     subspace::{R3Space, Subspace},
-    volume::SDFVolume,
-    VolumetricFunc,
+    SDFVolume, VolumetricFunc,
 };
 
 // An EvaluationCache is a cache of evaluations of an SDFExpression and its gradient.
@@ -51,6 +50,10 @@ impl<'a> EvaluationCache<'a> {
                 .volume
                 .real_pos::<3, R3Space>(&subspace.unproject_vec(norm_pos), &R3Space()),
         )
+    }
+
+    pub(crate) fn eval_real(&self, real_pos: &Vector3<f64>) -> f64 {
+        self.func.eval(real_pos)
     }
 
     pub(crate) fn eval_grad(&mut self, at: &PartitionCoord<3>) -> Vector3<f64> {

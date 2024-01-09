@@ -2,11 +2,10 @@ use crate::{
     cache::EvaluationCache,
     cells::{build_cell_trees, tetrahedralize},
     optimizer::{find_edge_dual, find_face_dual, find_volume_dual},
-    volume::SDFVolume,
-    MeshBuffers, VolumetricFunc,
+    MeshBuffers, VolumetricFunc, SDFVolume,
 };
 
-// find_isosurface returns a mesh approximating the isosurface at the 0 value of expr.
+// find_isosurface returns a mesh approximating the isosurface at the 0 value of func.
 // The implementation is based on the algorithm described in:
 // Isosurfaces Over Simplicial Partitions of Multiresolution Grids by Josiah Manson and Scott Schaefer.
 // min and max_depth control the minimum and maximum subdivision of space in each dimension.

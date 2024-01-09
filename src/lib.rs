@@ -9,8 +9,7 @@ mod optimizer;
 mod partition;
 mod simplex;
 mod subspace;
-mod volume;
 
-pub use data::{sdf::SDFExpression, Dimension, VolumetricFunc};
+pub use data::{sdf::SDFExpression, Dimension, SDFVolume, VolumetricFunc};
 pub use isosurface::find_isosurface;
 pub use mesh::MeshBuffers;

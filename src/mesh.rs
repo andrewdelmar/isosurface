@@ -114,14 +114,30 @@ struct FaceVert<'a> {
 
 impl<'a> FaceVert<'a> {
     fn crossing(&self, cache: &mut EvaluationCache) -> Vector3<f64> {
-        // TODO This should use a couple of iterations of newtons method or something.
-        // Maybe pass in some error value/max iterations to optimize to.
-        // Placing vertices on the isosurface will always under/overshoot concave/convex curves.
-        // This would ideally consider some estimate of error across neighboring tris.
-        let iv = self.i.eval(cache);
-        let ov = self.o.eval(cache);
-        let t = (-iv / (ov - iv)).clamp(0.0, 1.0);
-        self.i.pos(cache) * (1.0 - t) + self.o.pos(cache) * t
+        let mut iv = self.i.eval(cache);
+        let mut ov = self.o.eval(cache);
+        let mut ip = self.i.pos(cache);
+        let mut op = self.o.pos(cache);
+
+        let mut cp = ip;
+        //TODO this should be a setting.
+        for _ in 0..30 {
+            let t = (-iv / (ov - iv)).clamp(0.0, 1.0);
+            cp = ip * (1.0 - t) + op * t;
+            let cv = cache.eval_real(&cp);
+
+            if cv == 0.0 {
+                break;
+            } else if cv < 0.0 {
+                ip = cp;
+                iv = cv;
+            } else {
+                op = cp;
+                ov = cv;
+            }
+        }
+
+        cp
     }
 }
 

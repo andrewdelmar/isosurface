@@ -1,10 +1,6 @@
 use nalgebra::{SMatrix, SVector};
 
-use crate::{
-    cache::EvaluationCache,
-    partition::PartitionCoord,
-    subspace::{R3Space, Subspace},
-};
+use crate::{cache::EvaluationCache, partition::PartitionCoord, subspace::Subspace};
 
 // Because of the ridiculously painful bounds required for pseudo_inverse and other matrix operations
 // it's much shorter to just implement this for N = 1, 2, and 3 with a macro than use generics.
@@ -17,21 +13,14 @@ macro_rules! impl_optimizer {
         ) -> SVector<f64, $Dim> {
             let mut quadric = SMatrix::<f64, { $Dim + 1 }, { $Dim + 1 }>::default();
             for vert_coord in coord.vertex_coords() {
+                let real_pos = cache.volume.real_pos(&vert_coord.norm_pos(), subspace);
+
                 let coord3 = subspace.unproject_coord(&vert_coord);
-
-                let real_pos3 = cache.volume.real_pos(&coord3.norm_pos(), &R3Space());
-                let real_pos_o = subspace.ortho_components_vec(&real_pos3);
-
                 let grad3 = cache.eval_grad(&coord3).normalize();
                 let grad_s = subspace.project_vec(&grad3);
-                let grad_o = subspace.ortho_components_vec(&grad3);
 
-                let val = cache.eval(&coord3);
-
-                let d = val - grad3.dot(&real_pos3);
-                let d_s = d + grad_o.dot(&real_pos_o);
-
-                let plane = grad_s.push(d_s);
+                let d = -grad_s.dot(&real_pos);
+                let plane = grad_s.push(d);
 
                 quadric += plane * plane.transpose();
             }
@@ -45,7 +34,7 @@ macro_rules! impl_optimizer {
             if coord.inside(&norm_pos) {
                 norm_pos
             } else {
-                //TODO This should project the plance equations onto the cell
+                //TODO This should project the plane equations onto the cell
                 // to guarantee a position in the volume
                 coord.norm_pos()
             }
