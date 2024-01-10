@@ -10,15 +10,14 @@ use term::SDFExprTerm;
 use crate::{Dimension, VolumetricFunc};
 use nalgebra::Vector3;
 use std::{
-    cell::RefCell,
     ops::{Add, Mul, Neg, Sub},
-    rc::Rc,
+    sync::{Arc, Mutex},
 };
 
 #[derive(Clone, Default)]
 pub struct SDFExpression {
     sops: SDFExprSOP,
-    grad_cache: RefCell<Option<[SDFExprSOP; 3]>>,
+    grad_cache: Arc<Mutex<Option<[SDFExprSOP; 3]>>>,
 }
 
 impl VolumetricFunc for SDFExpression {
@@ -27,7 +26,7 @@ impl VolumetricFunc for SDFExpression {
     }
 
     fn grad(&self, at: &nalgebra::Vector3<f64>) -> Vector3<f64> {
-        let mut cache = self.grad_cache.borrow_mut();
+        let mut cache = self.grad_cache.lock().unwrap();
         let [x, y, z] = cache.get_or_insert_with(|| self.derive_grad());
 
         Vector3::new(x.eval(at), y.eval(at), z.eval(at))
@@ -44,8 +43,8 @@ impl SDFExpression {
     }
 
     pub fn max(a: Self, b: Self) -> Self {
-        let arc = Rc::new(a.sops);
-        let brc = Rc::new(b.sops);
+        let arc = Arc::new(a.sops);
+        let brc = Arc::new(b.sops);
         let term = SDFExprTerm::GT {
             left: arc.clone(),
             right: brc.clone(),
@@ -56,8 +55,8 @@ impl SDFExpression {
     }
 
     pub fn min(a: Self, b: Self) -> Self {
-        let arc = Rc::new(a.sops);
-        let brc = Rc::new(b.sops);
+        let arc = Arc::new(a.sops);
+        let brc = Arc::new(b.sops);
         let term = SDFExprTerm::GT {
             left: arc.clone(),
             right: brc.clone(),
@@ -131,7 +130,7 @@ impl From<SDFExprSOP> for SDFExpression {
     fn from(value: SDFExprSOP) -> Self {
         Self {
             sops: value,
-            grad_cache: RefCell::default(),
+            grad_cache: Arc::new(Mutex::default()),
         }
     }
 }

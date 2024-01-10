@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::sync::Arc;
 
 use nalgebra::Vector3;
 
@@ -10,10 +10,10 @@ use super::{prod::SDFExprProd, sop::SDFExprSOP};
 pub(super) enum SDFExprTerm {
     Dim(Dimension),
     GT {
-        left: Rc<SDFExprSOP>,
-        right: Rc<SDFExprSOP>,
-        true_val: Rc<SDFExprSOP>,
-        false_val: Rc<SDFExprSOP>,
+        left: Arc<SDFExprSOP>,
+        right: Arc<SDFExprSOP>,
+        true_val: Arc<SDFExprSOP>,
+        false_val: Arc<SDFExprSOP>,
     },
 }
 
@@ -55,8 +55,8 @@ impl SDFExprTerm {
             } => Some(vec![Self::GT {
                 left: left.clone(),
                 right: right.clone(),
-                true_val: Rc::new(true_val.derivative(wrt)),
-                false_val: Rc::new(false_val.derivative(wrt)),
+                true_val: Arc::new(true_val.derivative(wrt)),
+                false_val: Arc::new(false_val.derivative(wrt)),
             }]),
         };
 

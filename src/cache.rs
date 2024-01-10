@@ -10,6 +10,7 @@ use crate::{
 
 // An EvaluationCache is a cache of evaluations of an SDFExpression and its gradient.
 // This simplifies looking up values when constructing cell trees and during marching tetrahedra.
+#[derive(Clone)]
 pub(crate) struct EvaluationCache<'a> {
     func: &'a dyn VolumetricFunc,
 

@@ -1,4 +1,8 @@
-use std::{collections::{btree_map, BTreeMap}, cmp::Ordering};
+use std::{
+    cmp::Ordering,
+    collections::{btree_map, BTreeMap},
+    sync::Mutex,
+};
 
 use crate::{
     partition::{PartitionCoord, PartitionTreeIter},
@@ -18,10 +22,10 @@ where
 {
     pub(crate) subspace: S,
     pub(crate) coord: PartitionCoord<N>,
-    pub(crate) cell_data: &'a Cell<N>,
+    pub(crate) cell_data: &'a Mutex<Cell<N>>,
 }
 
-impl<'a, const N: usize, S> PartialEq for CellEntry<'a, N, S> 
+impl<'a, const N: usize, S> PartialEq for CellEntry<'a, N, S>
 where
     [(); 3 - N]:,
     S: Subspace<N>,
@@ -35,9 +39,10 @@ impl<'a, const N: usize, S> Eq for CellEntry<'a, N, S>
 where
     [(); 3 - N]:,
     S: Subspace<N>,
-{} 
+{
+}
 
-impl<'a, const N: usize, S> PartialOrd for CellEntry<'a, N, S> 
+impl<'a, const N: usize, S> PartialOrd for CellEntry<'a, N, S>
 where
     [(); 3 - N]:,
     S: Subspace<N>,
@@ -47,18 +52,18 @@ where
     }
 }
 
-impl<'a, const N: usize, S> Ord for CellEntry<'a, N, S> 
-    where
+impl<'a, const N: usize, S> Ord for CellEntry<'a, N, S>
+where
     [(); 3 - N]:,
     S: Subspace<N>,
 {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        match self.subspace.cmp(&other.subspace){
-            Ordering::Equal => {},
+        match self.subspace.cmp(&other.subspace) {
+            Ordering::Equal => {}
             ord => return ord,
         }
-        match self.coord.cmp(&other.coord){
-            Ordering::Equal => {},
+        match self.coord.cmp(&other.coord) {
+            Ordering::Equal => {}
             ord => return ord,
         }
 
@@ -66,8 +71,8 @@ impl<'a, const N: usize, S> Ord for CellEntry<'a, N, S>
     }
 }
 
-impl<'a, const N: usize, S> std::hash::Hash for CellEntry<'a, N, S> 
-    where
+impl<'a, const N: usize, S> std::hash::Hash for CellEntry<'a, N, S>
+where
     [(); 3 - N]:,
     S: Subspace<N>,
 {
@@ -84,7 +89,7 @@ where
     S: Subspace<N>,
 {
     b_iter: btree_map::Iter<'a, S, CellTree<N>>,
-    leaves: Option<(&'a S, PartitionTreeIter<'a, Cell<N>, N>)>,
+    leaves: Option<(&'a S, PartitionTreeIter<'a, Mutex<Cell<N>>, N>)>,
 }
 
 impl<'a, const N: usize, S> CellIter<'a, N, S>
@@ -147,13 +152,12 @@ where
     }
 }
 
-
 pub(crate) struct ChildIterator<'a, const N: usize, S>
 where
     [(); 1 << N]:,
 {
     subspace: S,
-    tree_iter: Option<PartitionTreeIter<'a, Cell<N>, N>>,
+    tree_iter: Option<PartitionTreeIter<'a, Mutex<Cell<N>>, N>>,
 }
 
 impl<'a, const N: usize, S> Iterator for ChildIterator<'a, N, S>
@@ -165,8 +169,9 @@ where
     type Item = CellEntry<'a, N, S>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(tree_iter) = &mut self.tree_iter 
-        && let Some((coord, cell)) = tree_iter.next() {
+        if let Some(tree_iter) = &mut self.tree_iter
+            && let Some((coord, cell)) = tree_iter.next()
+        {
             Some(CellEntry {
                 subspace: self.subspace.clone(),
                 coord: coord,

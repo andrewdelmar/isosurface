@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, sync::Mutex};
 
 use crate::{
     cache::EvaluationCache,
@@ -15,7 +15,7 @@ use super::{
 // build_cell_trees returns an octree, a set of quadtrees and a set of binary trees.
 // These sets of trees contain volume, face and edge cells respectively.
 // Trees are divided wherever a sign change occurs in the input function up to max_depth.
-// Trees of cells are divided min_depth times before sign changes are tested.   
+// Trees of cells are divided min_depth times before sign changes are tested.
 pub(crate) fn build_cell_trees(
     cache: &mut EvaluationCache,
     min_depth: usize,
@@ -73,7 +73,7 @@ fn volume_tree(
 ) -> CellTree<3> {
     let sign_change = sign_change(cache, coord);
     match (max_depth, sign_change) {
-        (0, true) => PartitionTree::Leaf(Cell::<3>::default()),
+        (0, true) => PartitionTree::Leaf(Mutex::new(Cell::<3>::default())),
         (0, false) => PartitionTree::None,
         (_, true) => PartitionTree::Node(Box::new(
             coord

@@ -1,11 +1,15 @@
 use crate::{
     cache::EvaluationCache,
     cells::{build_cell_trees, tetrahedralize},
-    optimizer::{find_edge_dual, find_face_dual, find_volume_dual},
+    duals::{find_all_edge_duals, find_all_face_duals, find_all_volume_duals},
     MeshBuffers, SDFVolume, VolumetricFunc,
 };
 
 pub struct SolverSettings {
+    // The number of additional threads to use for calculations.
+    // A value of 0 will not spawn any additional threads.
+    pub worker_threads: usize,
+
     // Octree construction settings.
     pub min_octree_depth: usize,
     pub max_octree_depth: usize,
@@ -21,9 +25,10 @@ pub struct SolverSettings {
 impl Default for SolverSettings {
     fn default() -> Self {
         Self {
+            worker_threads: 0,
             min_octree_depth: 3,
             max_octree_depth: 4,
-            dual_sample_subdivisions: 1,
+            dual_sample_subdivisions: 2,
             max_vert_fitting_steps: 32,
             vert_fitting_error: f64::EPSILON,
         }
@@ -46,39 +51,37 @@ where
         settings.max_octree_depth,
     );
 
-    for cell in &volume_cells {
-        *cell.cell_data.dual_pos.borrow_mut() = find_volume_dual(
-            &cell.coord,
-            &cell.subspace,
-            &mut cache,
-            settings.dual_sample_subdivisions,
-        );
-    }
-    for cell in &face_cells {
-        *cell.cell_data.dual_pos.borrow_mut() = find_face_dual(
-            &cell.coord,
-            &cell.subspace,
-            &mut cache,
-            settings.dual_sample_subdivisions,
-        );
-    }
-    for cell in &edge_cells {
-        *cell.cell_data.dual_pos.borrow_mut() = find_edge_dual(
-            &cell.coord,
-            &cell.subspace,
-            &mut cache,
-            settings.dual_sample_subdivisions,
-        );
-    }
+    find_all_volume_duals(
+        &volume_cells,
+        &mut cache,
+        settings.worker_threads,
+        settings.dual_sample_subdivisions,
+    );
+
+    find_all_face_duals(
+        &face_cells,
+        &mut cache,
+        settings.worker_threads,
+        settings.dual_sample_subdivisions,
+    );
+
+    find_all_edge_duals(
+        &edge_cells,
+        &mut cache,
+        settings.worker_threads,
+        settings.dual_sample_subdivisions,
+    );
 
     let tetras = tetrahedralize(&volume_cells, &face_cells, &edge_cells);
 
-    MeshBuffers::new(
+    let buffers = MeshBuffers::new(
         &mut cache,
         tetras,
         settings.max_vert_fitting_steps,
         settings.vert_fitting_error,
-    )
+    );
+
+    buffers
 }
 
 #[cfg(test)]

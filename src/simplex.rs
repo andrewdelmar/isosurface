@@ -1,10 +1,10 @@
-use std::mem::MaybeUninit;
+use std::{mem::MaybeUninit, ops::DerefMut};
 
 use nalgebra::Vector3;
 
 use crate::{
     cache::EvaluationCache,
-    cells::CellEntry,
+    cells::{Cell, CellEntry},
     partition::PartitionCoord,
     subspace::{R1Space, R2Space, R3Space, Subspace},
 };
@@ -21,18 +21,24 @@ impl<'a> SimplexVert<'a> {
     pub(crate) fn eval(&self, cache: &mut EvaluationCache) -> f64 {
         match self {
             SimplexVert::CellBoundary(coord) => cache.eval(coord),
-            SimplexVert::EdgeDual(cell) => *cell
-                .cell_data
-                .dual_val
-                .get_or_init(|| cache.eval_vec(&cell.cell_data.dual_pos.borrow(), &cell.subspace)),
-            SimplexVert::FaceDual(cell) => *cell
-                .cell_data
-                .dual_val
-                .get_or_init(|| cache.eval_vec(&cell.cell_data.dual_pos.borrow(), &cell.subspace)),
-            SimplexVert::VolumeDual(cell) => *cell
-                .cell_data
-                .dual_val
-                .get_or_init(|| cache.eval_vec(&cell.cell_data.dual_pos.borrow(), &cell.subspace)),
+            SimplexVert::EdgeDual(cell) => {
+                let mut data = cell.cell_data.lock().unwrap();
+                let Cell { dual_val, dual_pos } = data.deref_mut();
+
+                *dual_val.get_or_insert_with(|| cache.eval_vec(dual_pos, &cell.subspace))
+            }
+            SimplexVert::FaceDual(cell) => {
+                let mut data = cell.cell_data.lock().unwrap();
+                let Cell { dual_val, dual_pos } = data.deref_mut();
+
+                *dual_val.get_or_insert_with(|| cache.eval_vec(dual_pos, &cell.subspace))
+            }
+            SimplexVert::VolumeDual(cell) => {
+                let mut data = cell.cell_data.lock().unwrap();
+                let Cell { dual_val, dual_pos } = data.deref_mut();
+
+                *dual_val.get_or_insert_with(|| cache.eval_vec(dual_pos, &cell.subspace))
+            }
         }
     }
 
@@ -42,11 +48,11 @@ impl<'a> SimplexVert<'a> {
                 SimplexVert::CellBoundary(coord) => coord.norm_pos(),
                 SimplexVert::EdgeDual(cell) => cell
                     .subspace
-                    .unproject_vec(&cell.cell_data.dual_pos.borrow()),
+                    .unproject_vec(&cell.cell_data.lock().unwrap().dual_pos),
                 SimplexVert::FaceDual(cell) => cell
                     .subspace
-                    .unproject_vec(&cell.cell_data.dual_pos.borrow()),
-                SimplexVert::VolumeDual(cell) => *cell.cell_data.dual_pos.borrow(),
+                    .unproject_vec(&cell.cell_data.lock().unwrap().dual_pos),
+                SimplexVert::VolumeDual(cell) => cell.cell_data.lock().unwrap().dual_pos,
             },
             &R3Space(),
         )

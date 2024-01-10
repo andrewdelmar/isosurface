@@ -1,11 +1,11 @@
 pub(crate) mod sdf;
 
+use nalgebra::{SVector, Vector3};
 use std::{fmt::Display, marker::ConstParamTy};
-use nalgebra::{Vector3, SVector};
 
 use crate::subspace::Subspace;
 
-pub trait VolumetricFunc {
+pub trait VolumetricFunc: Send + Sync {
     fn eval(&self, at: &Vector3<f64>) -> f64;
     fn grad(&self, at: &Vector3<f64>) -> Vector3<f64>;
 }

@@ -3,7 +3,7 @@ use std::{
     io::{self, Write},
 };
 
-use nalgebra::{ComplexField, Vector3};
+use nalgebra::Vector3;
 
 use crate::{
     cache::EvaluationCache,

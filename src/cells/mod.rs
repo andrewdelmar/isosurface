@@ -1,7 +1,7 @@
 use crate::subspace::{R1Space, R2Space, R3Space};
 
 mod collection;
-pub(crate) use collection::CellCollection;
+pub(crate) use collection::{Cell, CellCollection};
 
 pub(crate) type EdgeCellCollection = CellCollection<1, R1Space>;
 pub(crate) type FaceCellCollection = CellCollection<2, R2Space>;

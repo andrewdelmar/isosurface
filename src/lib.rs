@@ -5,7 +5,7 @@ mod cells;
 mod data;
 mod isosurface;
 mod mesh;
-mod optimizer;
+mod duals;
 mod partition;
 mod simplex;
 mod subspace;
